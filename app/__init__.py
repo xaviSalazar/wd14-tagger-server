@@ -8,8 +8,19 @@ from loguru import logger
 from .infer import InferClient
 from .infer.error import LoadError, FileSizeMismatchError, DownloadError
 from .settings import InferSettingCurrent
+from starlette.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # List the allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 def verify_token(token):
@@ -75,3 +86,11 @@ async def upload(
     except Exception as e:
         logger.exception(e)
         raise HTTPException(status_code=500, detail="服务器内部错误...")
+
+@app.get("/state")
+async def get_state():
+    # Check if the infer app has initialized correctly
+    if INFER_APP:
+        return {"status": "API is running normally", "model_path": INFER_APP.model_path}
+    else:
+        return {"status": "Infer app initialization failed"}, 500
